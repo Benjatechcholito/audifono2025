@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script src="/.netlify/functions/pixel.js" defer></script>
+
+    <!-- Bootstrap Modal -->
+    <style>
+    .modal-backdrop.show { opacity: 0.5; }
+    /* Miniaturas - estado activo y cursor */
+    .img-thumbnail.thumb { cursor: pointer; transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease; }
+    .img-thumbnail.thumb:hover { transform: translateY(-3px); }
+    .thumb-active { box-shadow: 0 6px 18px rgba(25,135,84,0.18); transform: scale(1.05); border: 2px solid #198754; }
+    /* Barra de progreso: fondo (parte no llena) más oscuro y borde coloreado */
+    .progress.stock-progress {
+        background-color: #c1c1c6;
+        border: 2px solid #dc3545; /* borde rojo para coincidir con la barra */
+        border-radius: 0.5rem;
+        overflow: hidden;
+        box-sizing: border-box; /* mantiene el alto esperado al añadir borde */
+        /* Aumenta el grosor de la barra en todo el sitio (sobrescribe estilos inline si es necesario) */
+        height: 30px !important;
+    }
+    /* Alinea el contenido de la barra y asegura buen espaciado del texto dentro */
+    .progress.stock-progress .progress-bar {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 0.5rem;
+        font-weight: 600;
+        color: #fff;
+    }
+    /* Envío aéreo: bloque pequeño con imagen y texto */
+    .envio-aereo { display:flex; align-items:center; gap:0.75rem; justify-content:center; margin-top:0.6rem; }
+    .envio-aereo img { height:40px; width:auto; display:block; }
+    .envio-aereo .texto { font-size:0.95rem; font-weight:600; color:#222; }
+    .envio-aereo .nota { display:block; font-size:0.75rem; color:#666; font-style:italic; margin-top:0.18rem; }
+    .envio-24 { 
+        font-size:1.12rem; 
+        font-weight:700; 
+        color:#fff; 
+        background: linear-gradient(90deg,#198754,#16a34a); 
+        display:inline-block; 
+        padding:0.45rem 0.9rem; 
+        border-radius:0.6rem; 
+        box-shadow:0 6px 18px rgba(25,135,84,0.18); 
+    }
+    @keyframes shake {
+        10% { transform: scale(1.08) translateX(-2px); }
+        20% { transform: scale(1.08) translateX(2px); }
+        30% { transform: scale(1.08) translateX(-2px); }
+        40% { transform: scale(1.08) translateX(2px); }
+        50% { transform: scale(1.08) translateX(-2px); }
+        60% { transform: scale(1.08) translateX(2px); }
+        100% { transform: scale(1.08); }
+    }
+    .envio-gratis {
+        font-weight: 600;
+        color: #198754;
+        background: #e9fbe7;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        display: inline-block;
+        margin-top: 0.5rem;
+        font-size: 1.1em;
+    }
+    /* Espacio entre imagen apilada y título en móviles */
+    .product-title { margin-top: 0; }
+    @media (max-width: 767.98px) {
+        .product-title { margin-top: 1.5rem !important; }
+    }
+    /* Mobile tweaks */
+    @media (max-width: 767.98px) {
+        /* Slightly smaller main image for narrow screens */
+        #mainProductImage { max-height: 320px !important; }
+        /* Smaller thumbnails */
+        .img-thumbnail.thumb { width:72px !important; height:72px !important; }
+        /* Make combo cards full-width stack and larger touch targets */
+        .combo-card { padding:1rem !important; }
+        .combo-grid .col-12 { margin-bottom: 0.45rem; }
+        /* Reduce progress bar height on small devices so it doesn't dominate */
+        .progress.stock-progress { height: 24px !important; }
+        /* Make CTA price text size a bit smaller */
+        .replica-purchase .fs-3, .fs-2 { font-size: 1.4rem !important; }
+        /* Form padding adjusted within modal */
+        #formPedido { padding: 0.5rem !important; }
+        /* Ensure envio-aereo images aren't too large */
+        .envio-aereo img { height:34px; }
+        /* Modal: ensure form fields stack nicely and CTA buttons are full width */
+        .modal-content { border-radius: 0.6rem; }
+    }
+    /* Formulario modal con borde verde */
+    #formPedido {
+        border: 2px solid #198754;
+        border-radius: 0.6rem;
+        padding: 0.65rem;
+        box-shadow: 0 8px 20px rgba(25,135,84,0.06);
+        background: #fff;
+    }
+    /* Tarjetas de combo dentro del modal */
+    .combo-grid { margin-top: 0.5rem; }
+    .combo-card {
+        border: 1px solid #e4e6eb;
+        border-radius: 0.6rem;
+        cursor: pointer;
+        transition: box-shadow 160ms ease, border-color 160ms ease, transform 120ms ease;
+        background: #fff;
+    }
+    .combo-card:hover { transform: translateY(-3px); }
+    .combo-card.selected { border-color: #198754; box-shadow: 0 12px 30px rgba(25,135,84,0.08); }
+    .combo-card .promo { color: #6b7280; font-size:0.95rem; }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landing Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <style>
+        body { font-family: 'Montserrat', Arial, sans-serif; }
+    </style>
+    <section class="container py-5">
+        <div class="row align-items-center g-5">
+            <div class="col-md-6 text-center">
+                <img id="mainProductImage" src="media/1.webp" alt="Imagen 1 - Audifono" class="img-fluid rounded shadow-lg mb-3" style="max-height:420px;object-fit:cover;transition:opacity 160ms ease;">
+                <div class="d-flex justify-content-center gap-2 flex-wrap">
+                    <img id="thumb2" src="media/2.png" alt="Imagen 2" class="img-thumbnail thumb" data-src="media/2.png" style="width:96px;height:96px;object-fit:cover;">
+                    <img id="thumb3" src="media/3.png" alt="Imagen 3" class="img-thumbnail thumb" data-src="media/3.png" style="width:96px;height:96px;object-fit:cover;">
+                    <img id="thumb4" src="media/4.png" alt="Imagen 4" class="img-thumbnail thumb" data-src="media/4.png" style="width:96px;height:96px;object-fit:cover;">
+                    <img id="thumb5" src="media/5.webp" alt="Imagen 5" class="img-thumbnail thumb" data-src="media/5.webp" style="width:96px;height:96px;object-fit:cover;">
+                </div>
+            </div>
+            <div class="col-md-6">
+                <h1 class="fw-bold mb-2 product-title">Audifono Inalambrico con pantalla tactil</h1>
+                <div class="mb-2">
+                    <span class="text-warning">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-half"></i>
+                    </span>
+                    <span class="fw-bold ms-2">4.9</span>
+                    <span class="text-muted ms-2">/ 11 valoraciones</span>
+                    <span class="badge bg-success ms-2">79 vendidos</span>
+                </div>
+                <div class="text-center mb-1">
+                    <span class="badge bg-danger text-white fs-6 fw-bold px-3 py-2">OFERTA POR TIEMPO LIMITADO</span>
+                    <span class="badge bg-warning text-dark fs-6 fw-bold px-2 py-2 ms-2">DSCTO 50%</span>
+                </div>
+                <div class="mb-2 text-center">
+                    <span class="fs-4 text-muted text-decoration-line-through">S/ 118</span>
+                    <span class="fs-2 fw-bold text-danger ms-3">S/ 69</span>
+                </div>
+                <div class="mb-3">
+                    <label class="fw-bold mb-1" for="stockBar">¡Solo quedan <b>3</b> en stock!</label>
+                    <div class="progress stock-progress">
+                        <div id="stockBar" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100">Quedan 3 ultimos audifonos</div>
+                    </div>
+                </div>
+                <div class="d-flex flex-column align-items-center">
+                    <button type="button" class="btn btn-success btn-lg btn-anim fw-bold shadow mb-2 w-100 px-5" style="max-width:400px;" data-bs-toggle="modal" data-bs-target="#modalPedido"><i class="bi bi-cart-plus me-2"></i>Comprar ahora</button>
+    <!-- Modal Pedido -->
+    <div class="modal fade" id="modalPedido" tabindex="-1" aria-labelledby="modalPedidoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content">
+                    <div class="modal-header">
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                    </div>
+          <form id="formPedido">
+                        <div class="modal-body">
+                            <div class="mb-3 text-center">
+                                <h5 class="fw-bold"><i class="bi bi-bag-check me-2 text-success"></i>Haz tu pedido</h5>
+                                <div class="fw-bold mt-1">CONFIRMA TUS DATOS PARA ENVIAR TU PEDIDO</div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Nombre</label>
+                                <input type="text" class="form-control" name="nombre" required>
+                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Provincia</label>
+                                                <input type="text" class="form-control" name="provincia" placeholder="Escribe tu provincia" required>
+                                            </div>
+              
+              <div class="mb-3">
+                <label class="form-label fw-bold">Celular</label>
+                <input type="tel" class="form-control" name="celular" required>
+              </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-bold d-block mb-2">Combo</label>
+                                <div class="row combo-grid g-2">
+                                    <div class="col-12 col-md-4">
+                                        <div class="p-3 combo-card d-flex flex-column align-items-start" data-value="1x69">
+                                            <div class="fw-bold">1 x S/ 69</div>
+                                            <div class="promo">Promo individual - envío express</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <div class="p-3 combo-card d-flex flex-column align-items-start" data-value="2x119">
+                                            <div class="fw-bold">2 x S/119</div>
+                                            <div class="promo">Ahorra en pareja - estuche incluido</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-4">
+                                        <div class="p-3 combo-card d-flex flex-column align-items-start" data-value="3x149">
+                                            <div class="fw-bold">3 x S/149</div>
+                                            <div class="promo">Mejor valor - regalo sorpresa</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- campo oculto para enviar el combo seleccionado -->
+                                <input type="hidden" name="combo" id="comboHidden" required>
+                            </div>
+              
+            </div>
+            <div class="modal-footer">
+              <button type="submit" class="btn btn-success w-100 fw-bold">Enviar pedido</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+                    <div id="timer-oferta" class="mt-2 mb-2 w-100 text-center">
+                        <span class="badge bg-dark text-white fs-5 py-2 px-4"><i class="bi bi-clock me-2"></i>Oferta termina en <span id="countdown">00:05:00</span></span>
+                    </div>
+                    <div class="envio-gratis mt-2 w-100 text-center">🚚 Envío GRATIS a todo el Perú</div>
+                    <div class="envio-aereo w-100 text-center" aria-hidden="false">
+                        <img src="media/SHALOM.webp" alt="Envío Aéreo SHALOM" />
+                        <div>
+                            <div class="texto">Tu pedido llegará en 24 hrs (envío aéreo)</div>
+                            <div class="nota">Nota: en ocasiones la empresa puede tomar más tiempo en procesar o entregar el pedido.</div>
+                        </div>
+                    </div>
+                </div>
+                <p class="mt-4">Disfruta de sonido premium, batería de larga duración y diseño ergonómico. ¡No te quedes sin los tuyos!</p>
+    <div id="popup-compras" style="position:fixed;bottom:24px;right:24px;z-index:9999;width:280px;">
+        <div style="position:relative;height:60px;">
+            <div class="alert alert-success shadow-lg d-flex align-items-center" style="display:none;margin:0;position:absolute;left:0;right:0;top:0;opacity:0;">
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <span><b>Julio</b> acaba de comprar su audífono</span>
+            </div>
+            <div class="alert alert-success shadow-lg d-flex align-items-center" style="display:none;margin:0;position:absolute;left:0;right:0;top:0;opacity:0;">
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <span><b>Ana</b> acaba de comprar su audífono</span>
+            </div>
+            <div class="alert alert-success shadow-lg d-flex align-items-center" style="display:none;margin:0;position:absolute;left:0;right:0;top:0;opacity:0;">
+                <i class="bi bi-person-circle fs-4 me-2"></i>
+                <span><b>Felipe</b> acaba de comprar su audífono</span>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Opcional: Mensaje de confirmación al enviar el pedido
+        document.addEventListener('DOMContentLoaded', function() {
+            const formPedido = document.getElementById('formPedido');
+            if (formPedido) {
+                                formPedido.addEventListener('submit', function(e) {
+                                        e.preventDefault();
+                                        // Leer campos
+                                        const nombre = (formPedido.querySelector('input[name="nombre"]') || {}).value || '';
+                                        const celular = (formPedido.querySelector('input[name="celular"]') || {}).value || '';
+                                        const combo = formPedido.querySelector('#comboHidden')?.value || '';
+
+                                        // Disparar evento fbq Lead (si está disponible)
+                                        try {
+                                            if (typeof fbq === 'function') {
+                                                fbq('track','Lead',{ content_name: 'Lead_Form' });
+                                            } else if (window.fbq && typeof window.fbq === 'function') {
+                                                window.fbq('track','Lead',{ content_name: 'Lead_Form' });
+                                            }
+                                        } catch (err) {
+                                            // ignorar errores de tracking
+                                            console.warn('fbq track error', err);
+                                        }
+
+                                        // Guardar en localStorage para la página de gracias
+                                        try {
+                                            localStorage.setItem('nombrePedido', nombre);
+                                            localStorage.setItem('comboPedido', combo);
+                                            localStorage.setItem('celularPedido', celular);
+                                        } catch (err) {
+                                            // Si localStorage falla, continuar con la redirección
+                                            console.warn('localStorage error', err);
+                                        }
+
+                                        // Redirigir a gracias
+                                        window.location.href = 'gracias.html';
+                                });
+            }
+        });
+    // Cronómetro de oferta
+    function startCountdown(duration, display) {
+        let timer = duration, minutes, seconds;
+        const interval = setInterval(function () {
+            minutes = parseInt(timer / 60, 10);
+            seconds = parseInt(timer % 60, 10);
+            let horas = parseInt(minutes / 60, 10);
+            let minRest = minutes % 60;
+            display.textContent = `${horas.toString().padStart(2, '0')}:${minRest.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+            if (--timer < 0) {
+                clearInterval(interval);
+                display.textContent = "00:00:00";
+            }
+        }, 1000);
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+        const countdown = document.getElementById('countdown');
+        if (countdown) {
+            // 5 minutos en segundos
+            startCountdown(5 * 60, countdown);
+        }
+    });
+    // Sincronizar countdownReplica si existe
+    window.addEventListener('DOMContentLoaded', function() {
+        const countdownOrig = document.getElementById('countdown');
+        const countdownRep = document.getElementById('countdownReplica');
+        if (countdownOrig && countdownRep) {
+            // actualiza el texto cada segundo copiando el original
+            setInterval(() => { countdownRep.textContent = countdownOrig.textContent; }, 800);
+        }
+    });
+    // Animación de barra de stock
+    window.addEventListener('DOMContentLoaded', function() {
+        const bar = document.getElementById('stockBar');
+        let width = 60;
+        bar.style.width = width + '%';
+        setTimeout(() => {
+            let interval = setInterval(() => {
+                if (width < 92) {
+                    width += 2;
+                    bar.style.width = width + '%';
+                } else {
+                    clearInterval(interval);
+                }
+            }, 40);
+        }, 400);
+    });
+    // Animación de replica de barra de stock: sincroniza con stockBar
+    window.addEventListener('DOMContentLoaded', function() {
+        const bar = document.getElementById('stockBar');
+        const barRep = document.getElementById('stockBarReplica');
+        if (!bar || !barRep) return;
+        // espejo inicial
+        barRep.style.width = bar.style.width || '92%';
+        // observar cambios de ancho en bar y copiar
+        const obs = new MutationObserver(() => { barRep.style.width = bar.style.width; });
+        obs.observe(bar, { attributes: true, attributeFilter: ['style'] });
+    });
+
+    // Sistema de popups con aparición y desaparición simple
+    const popups = document.querySelectorAll('#popup-compras .alert');
+    let currentPopup = 0;
+
+    function showNextPopup() {
+        // Oculta todos los popups
+        popups.forEach(popup => {
+            popup.style.display = 'none';
+            popup.style.opacity = '0';
+        });
+
+        // Muestra el popup actual
+        const popup = popups[currentPopup];
+        popup.style.display = 'flex';
+        popup.style.opacity = '1';
+        popup.style.transition = 'opacity 0.3s ease';
+        
+        // Después de 3 segundos, oculta el popup
+        setTimeout(() => {
+            popup.style.opacity = '0';
+            
+            // Después de la transición de opacidad
+            setTimeout(() => {
+                popup.style.display = 'none';
+                currentPopup = (currentPopup + 1) % popups.length;
+                // Pequeña pausa antes del siguiente
+                setTimeout(showNextPopup, 300);
+            }, 300);
+        }, 3000);
+    }
+
+    // Inicia el ciclo
+    setTimeout(showNextPopup, 1000);
+    </script>
+            </div>
+        </div>
+    </section>
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-8 text-center">
+                        <div class="lead text-start" style="line-height:1.35;">
+                            <p>🎶 <strong class="fw-bold">"Música sin interrupciones, donde quieras"</strong></p>
+                            <p>Gracias a su pantalla táctil inteligente y conexión Bluetooth estable, podrás controlar tu música con un solo toque. No importa si estás en casa, en el transporte o entrenando, tus canciones favoritas estarán siempre a tu alcance. Olvídate de cables incómodos y disfruta de la libertad total.</p>
+                            <div class="text-center my-2"><img src="media/1.webp" alt="Música sin interrupciones" class="img-fluid rounded shadow-sm" style="max-height:480px;object-fit:cover;"></div>
+
+                            <p>🎮 <strong class="fw-bold">"Modo gamer con baja latencia"</strong></p>
+                            <p>El modo de juego sincroniza imagen y sonido con mínima demora, ideal para quienes aman los videojuegos. Escucha cada paso, disparo o detalle sonoro con precisión. Así tendrás una experiencia más inmersiva y competitiva, dándote ventaja frente a tus rivales.</p>
+                            <div class="text-center my-2"><img src="media/2.png" alt="Modo gamer baja latencia" class="img-fluid rounded shadow-sm" style="max-height:480px;object-fit:cover;"></div>
+
+                            <p>🛡️ <strong class="fw-bold">"Evita el robo de tu celular"</strong></p>
+                            <p>Con la pantalla táctil del estuche puedes cambiar de canción, pausar o ajustar sin necesidad de sacar tu celular del bolsillo. Esto te da mayor seguridad en la calle y tranquilidad al viajar en transporte público. Disfruta tu música sin exponerte y mantén tu celular protegido en todo momento.</p>
+                            <div class="text-center my-2"><img src="media/3.png" alt="Evita el robo de tu celular" class="img-fluid rounded shadow-sm" style="max-height:480px;object-fit:cover;"></div>
+
+                            <p>✨ <strong class="fw-bold">"Diseño que atrae miradas"</strong></p>
+                            <p>Su carcasa transparente y colores vibrantes no solo protegen, también transmiten estilo y modernidad. Cada vez que saques tus audífonos, atraerás la atención y mostrarás un accesorio único. No es solo tecnología, es moda para tus oídos.</p>
+                            <div class="text-center my-2"><img src="media/4.png" alt="Diseño que atrae miradas" class="img-fluid rounded shadow-sm" style="max-height:480px;object-fit:cover;"></div>
+
+                            <p>🔊 <strong class="fw-bold">"Sonido potente y claro"</strong></p>
+                            <p>La unidad de transmisión de 10 mm está diseñada para ofrecer bajos profundos y agudos nítidos. Disfruta tu música, películas o llamadas con una calidad envolvente. Es como llevar un concierto en tu bolsillo, con la fidelidad que mereces.</p>
+                            <div class="text-center my-2"><img src="media/5.webp" alt="Sonido potente y claro" class="img-fluid rounded shadow-sm" style="max-height:480px;object-fit:cover;"></div>
+
+                            <p>🔋 <strong class="fw-bold">"Batería que te acompaña todo el día"</strong></p>
+                            <p>Su estuche de carga inteligente prolonga la duración de tus audífonos, evitando que te quedes sin música en momentos clave. Con solo unos minutos de carga tendrás horas de uso. Ideal para viajes, entrenamientos o largas jornadas de estudio.</p>
+                            <div class="text-center my-2">
+                                <div class="envio-24"><i class="bi bi-airplane me-2"></i>Envío gratuito en todo el Perú – recibe tu pedido en máximo 24 horas</div>
+                                <img src="media/SHALOM.webp" alt="Batería que te acompaña" class="img-fluid rounded shadow-sm" style="max-height:200px;object-fit:cover;"></div>
+                            <div class="replica-purchase mt-3 text-center w-100">
+                                <div class="mb-2">
+                                    <div class="text-center mb-2">
+                                        <span class="badge bg-danger text-white fs-6 fw-bold px-3 py-2">OFERTA POR TIEMPO LIMITADO</span>
+                                        <span class="badge bg-warning text-dark fs-6 fw-bold px-2 py-2 ms-2">-50%</span>
+                                    </div>
+                                    <span class="fs-5 text-muted text-decoration-line-through">S/ 118</span>
+                                    <span class="fs-3 fw-bold text-danger ms-2">S/ 69</span>
+                                    <span class="badge bg-warning text-dark ms-2">DSCTO 50%</span>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="fw-bold mb-1 d-block">Quedan <b>3</b> en stock!</label>
+                                    <div class="progress stock-progress">
+                                        <div id="stockBarReplica" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100">Quedan 3 ultimos audifonos</div>
+                                    </div>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="badge bg-dark text-white"><i class="bi bi-clock me-1"></i>Oferta termina en <span id="countdownReplica">00:05:00</span></span>
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-success btn-lg btn-anim fw-bold shadow" style="max-width:320px;" data-bs-toggle="modal" data-bs-target="#modalPedido">QUIERO COMPRAR AHORA</button>
+                                </div>
+                            </div>
+                        </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Sección '¡Reserva tu terreno hoy!' eliminada por solicitud del usuario -->
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row text-center mb-4">
+                <div class="col">
+                    <h3 class="fw-bold"><i class="bi bi-chat-quote text-info me-2"></i>Testimonios</h3>
+                </div>
+            </div>
+            <div class="row justify-content-center g-4">
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Juan" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Juan Pérez</span>
+                                <span class="text-muted small">· 2 días</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">El audífono suena increíble, la entrega fue rápida y la atención muy clara. ¡Muy satisfecho!</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 12
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="María" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">María López</span>
+                                <span class="text-muted small">· 1 día</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Los audífonos tienen muy buena calidad de sonido y la batería dura mucho. Llegaron en perfecto estado.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 8
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/men/65.jpg" alt="Carlos" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Carlos Ruiz</span>
+                                <span class="text-muted small">· 3 horas</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">¡Sonido espectacular y envío rápido! Los audífonos superaron mis expectativas.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 15
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Lucía" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Lucía Torres</span>
+                                <span class="text-muted small">· 5 horas</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Aislamiento excelente y muy cómodos; la batería aguanta todo el día. Muy recomendados.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 9
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/men/23.jpg" alt="Pedro" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Pedro Salazar</span>
+                                <span class="text-muted small">· 1 hora</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Gran calidad de audio y ajuste cómodo; el envío fue rápido. Recomiendo totalmente los audífonos.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 6
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/women/12.jpg" alt="Sofía" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Sofía Ramírez</span>
+                                <span class="text-muted small">· 4 horas</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Perfectos para largas jornadas: cómodos, con buen sonido y diseño elegante para el trabajo.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 11
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/men/41.jpg" alt="Diego" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Diego Fernández</span>
+                                <span class="text-muted small">· 2 días</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">La mejor compra del año: sonido nítido, buen volumen y envío muy eficiente.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 14
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/women/36.jpg" alt="Valeria" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Valeria Medina</span>
+                                <span class="text-muted small">· 6 horas</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Llegaron en perfectas condiciones, el sonido es nítido y el diseño muy atractivo.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 7
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/men/77.jpg" alt="Javier" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Javier Castro</span>
+                                <span class="text-muted small">· 1 día</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Excelente relación calidad-precio: cómodos, buen sonido y fácil conexión Bluetooth.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 10
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-5 mb-3">
+                    <div class="bg-white rounded shadow-sm p-3 d-flex gap-3 align-items-start" style="border:1px solid #e4e6eb;">
+                        <img src="https://randomuser.me/api/portraits/women/21.jpg" alt="Andrea" class="rounded-circle" style="width:48px;height:48px;object-fit:cover;">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="fw-bold">Andrea Ríos</span>
+                                <span class="text-muted small">· 2 días</span>
+                            </div>
+                            <div class="bg-light rounded px-3 py-2 mt-1" style="font-size:1.05em;">Producto y servicio 5 estrellas. Repetiría la compra de estos audífonos sin dudarlo.</div>
+                            <div class="mt-1">
+                                <i class="bi bi-hand-thumbs-up-fill text-primary"></i> 13
+                                <span class="text-muted ms-2">Responder</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-5">
+        <div class="container">
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-8 text-center">
+                    <h3 class="fw-bold"><i class="bi bi-shield-lock text-success me-2"></i>🔒 Seguridad y Garantía</h3>
+                </div>
+            </div>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">Entrega aérea en menos de 24h 🚀</h5>
+                            <p class="card-text">Olvídate de esperas. Tus audífonos viajan en envío aéreo express y llegan directo a tus manos en menos de 24 horas.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">Garantía real de reemplazo ✅</h5>
+                            <p class="card-text">Si tu producto presenta cualquier falla de fábrica, lo cambiamos de inmediato sin costos adicionales. Tu compra siempre está protegida.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title fw-bold">Compra 100% segura 🛡️</h5>
+                            <p class="card-text">Tu dinero y tu experiencia están respaldados. Brindamos soporte postventa y canales de atención directa para resolver cualquier duda o inconveniente.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="py-5 bg-light">
+        <div class="container">
+            <div class="row justify-content-center mb-4">
+                <div class="col-md-8 text-center">
+                    <h2 class="fw-bold">¿Listo para comprar?</h2>
+                    <p class="lead">Aprovecha la oferta y asegura tus audífonos ahora mismo.</p>
+                </div>
+            </div>
+            <div class="row justify-content-center">
+                <div class="col-md-8 text-center">
+                    <div class="mb-3">
+                        <span class="badge bg-danger text-white fs-6 fw-bold px-3 py-2">OFERTA POR TIEMPO LIMITADO</span>
+                        <span class="badge bg-warning text-dark fs-6 fw-bold px-2 py-2 ms-2">-50%</span>
+                    </div>
+                    <div class="mb-2">
+                        <span class="fs-5 text-muted text-decoration-line-through">S/ 118</span>
+                        <span class="fs-2 fw-bold text-danger ms-3">S/ 69</span>
+                    </div>
+                    <div class="mb-3">
+                        <label class="fw-bold mb-1 d-block">Quedan <b>3</b> en stock!</label>
+                        <div class="progress stock-progress">
+                            <div id="stockBarCTA" class="progress-bar bg-danger progress-bar-striped progress-bar-animated" role="progressbar" style="width: 92%;" aria-valuenow="92" aria-valuemin="0" aria-valuemax="100">Quedan 3 ultimos audifonos</div>
+                        </div>
+                    </div>
+                    <div id="timer-cta" class="mt-2 mb-3">
+                        <span class="badge bg-dark text-white"><i class="bi bi-clock me-1"></i>Oferta termina en <span id="countdownCTA">00:05:00</span></span>
+                    </div>
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-success btn-lg btn-anim fw-bold shadow w-100" style="max-width:360px;" data-bs-toggle="modal" data-bs-target="#modalPedido"><i class="bi bi-cart-plus me-2"></i>Comprar ahora</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <footer>
+        <footer class="bg-dark text-white py-4">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-4 text-center text-md-start mb-3 mb-md-0">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg" alt="Logo empresa" style="height:40px;">
+                    </div>
+                    <div class="col-md-4 text-center mb-3 mb-md-0">
+                        <span>&copy; 2025 Limtechstore. Todos los derechos reservados.</span>
+                    </div>
+                    <div class="col-md-4 text-center text-md-end">
+                        <span class="me-2">Limtechstore whatsapp <a href="https://wa.me/51985569524" class="text-success">51985569524</a></span>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col text-center">
+                        <a href="#" class="text-white me-3">Términos</a>
+                        <a href="#" class="text-white">Política de privacidad</a>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </footer>
+</footer>
+</script>
+<script>
+// Thumbnail -> main image swap with transition and active state
+document.addEventListener('DOMContentLoaded', function() {
+    const mainImg = document.getElementById('mainProductImage');
+    const thumbs = Array.from(document.querySelectorAll('.img-thumbnail.thumb'));
+
+    if (!mainImg || thumbs.length === 0) return;
+
+    // Helper to set active thumb
+    function setActiveThumb(active) {
+        thumbs.forEach(t => t.classList.toggle('thumb-active', t === active));
+    }
+
+    // Swap function with short fade
+    function swapImage(newSrc, thumbEl) {
+        if (mainImg.src && mainImg.src.endsWith(newSrc)) return; // already set (best-effort)
+        mainImg.style.opacity = '0';
+        setTimeout(() => {
+            mainImg.src = newSrc;
+            mainImg.style.opacity = '1';
+        }, 120);
+        setActiveThumb(thumbEl);
+    }
+
+    // Attach events to thumbnails
+    thumbs.forEach(thumb => {
+        // Click
+        thumb.addEventListener('click', function() {
+            const src = thumb.getAttribute('data-src') || thumb.src;
+            swapImage(src, thumb);
+        });
+        // Keyboard accessibility (Enter/Space)
+        thumb.setAttribute('tabindex', '0');
+        thumb.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                thumb.click();
+            }
+        });
+    });
+
+    // Initialize: make the first thumbnail active if its src matches main, otherwise leave none
+    const initial = thumbs.find(t => t.getAttribute('data-src') && mainImg.src.includes(t.getAttribute('data-src')) ) || thumbs[0];
+    if (initial) setActiveThumb(initial);
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Reemplaza dinámicamente las imágenes de testimonios por fotos de usuarios con nacionalidad hispana/latina
+document.addEventListener('DOMContentLoaded', async function() {
+    try {
+        const section = document.querySelector('section.py-5.bg-light');
+        if (!section) return;
+        const imgs = Array.from(section.querySelectorAll('.bg-white img'));
+        if (imgs.length === 0) return;
+        // Pedimos la misma cantidad de usuarios; solicitamos nacionalidades ES y BR (España y Brasil) como opción
+        const res = await fetch('https://randomuser.me/api/?results=' + imgs.length + '&nat=es,br');
+        if (!res.ok) return;
+        const data = await res.json();
+        data.results.forEach((user, i) => {
+            const pic = user.picture && (user.picture.large || user.picture.medium || user.picture.thumbnail);
+            if (pic && imgs[i]) {
+                imgs[i].src = pic;
+                imgs[i].alt = (user.name && (user.name.first + ' ' + user.name.last)) || imgs[i].alt;
+            }
+        });
+    } catch (err) {
+        // Si hay error, no hacemos nada; se mantienen las imágenes actuales
+        console.warn('No se pudieron actualizar las imágenes de testimonios:', err);
+    }
+});
+</script>
+    <script>
+    // Sincronizar stockBar -> stockBarCTA
+    document.addEventListener('DOMContentLoaded', function() {
+        const mainBar = document.getElementById('stockBar');
+        const ctaBar = document.getElementById('stockBarCTA');
+        if (mainBar && ctaBar) {
+            // espejo inicial
+            ctaBar.style.width = mainBar.style.width || getComputedStyle(mainBar).width;
+            // observa cambios de estilo en el mainBar
+            const obs = new MutationObserver(() => { ctaBar.style.width = mainBar.style.width; });
+            obs.observe(mainBar, { attributes: true, attributeFilter: ['style'] });
+        }
+
+        // Copiar countdown al CTA si existe
+        const countdownOrig = document.getElementById('countdown');
+        const countdownCta = document.getElementById('countdownCTA');
+        if (countdownOrig && countdownCta) {
+            setInterval(() => { countdownCta.textContent = countdownOrig.textContent; }, 800);
+        }
+    });
+    </script>
+<script>
+// Combo card selection inside the modal
+document.addEventListener('DOMContentLoaded', function() {
+    const comboCards = Array.from(document.querySelectorAll('.combo-card'));
+    const comboHidden = document.getElementById('comboHidden');
+    const modalEl = document.getElementById('modalPedido');
+    if (comboCards.length && comboHidden) {
+        function selectCard(card) {
+            comboCards.forEach(c => c.classList.toggle('selected', c === card));
+            comboHidden.value = card.getAttribute('data-value') || '';
+        }
+        comboCards.forEach((card, idx) => {
+            card.addEventListener('click', () => selectCard(card));
+            card.setAttribute('tabindex', '0');
+            card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectCard(card); } });
+            if (idx === 0) selectCard(card);
+        });
+    }
+    if (modalEl) {
+        modalEl.addEventListener('show.bs.modal', function() {
+            if (comboHidden && !comboHidden.value && comboCards[0]) comboCards[0].click();
+        });
+    }
+});
+</script>
+</body>
+</html>

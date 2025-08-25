@@ -1,0 +1,28 @@
+# Netlify configuration
+# - Functions directory set to netlify/functions
+# - Use esbuild bundler for functions
+# - No build command (static site), publish from repository root
+
+[build]
+  # No build command (static site)
+  command = ""
+  # Publish the repository root (index.html is in repo root)
+  publish = "."
+
+[functions]
+  # Functions folder
+  directory = "netlify/functions"
+  # Use esbuild for bundling
+  node_bundler = "esbuild"
+
+[[headers]]
+# Apply CSP to all routes
+  for = "/*"
+  [headers.values]
+    # Content-Security-Policy
+    # - script-src: allow same-origin scripts (including local functions at /.netlify/functions/* via 'self')
+    #   and Facebook Pixel scripts from https://connect.facebook.net
+    # - connect-src: allow calls to Facebook CAPI at https://graph.facebook.com
+    # - img-src: allow images from Facebook domains (https://www.facebook.com) and self/data
+    # - style-src: allow self and inline styles to preserve existing inline badges
+    Content-Security-Policy = "default-src 'self'; script-src 'self' https://connect.facebook.net; connect-src 'self' https://graph.facebook.com; img-src 'self' https://www.facebook.com data:; style-src 'self' 'unsafe-inline';"
